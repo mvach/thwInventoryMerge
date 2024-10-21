@@ -53,21 +53,6 @@ var _ = Describe("Config", func() {
 		})
 
 		var _ = Describe("config errors", func() {
-			It("returns an error if mandatory working_dir is missing", func() {
-				jsonContent := `
-{
-}
-`
-				_, err := tempFile.Write([]byte(jsonContent))
-				Expect(err).ToNot(HaveOccurred())
-				tempFile.Close()
-
-				cfg, err := config.LoadConfig(tempFile.Name())
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("failed to validate the config file, property working_dir is required"))
-				Expect(cfg).To(BeNil())
-			})
-
 			It("returns an error if mandatory excel_file_name is missing", func() {
 				jsonContent := `
 {

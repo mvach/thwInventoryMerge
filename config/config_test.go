@@ -34,9 +34,10 @@ var _ = Describe("Config", func() {
 	{
 		"working_dir": "foo_working_dir",
 		"inventory_csv_file_name": "foo_inventory_csv_file_name",
-		"inventory_csv_config": {
-			"equipment_id_column_name": "foo_equipment_id_column_name",
-			"equipment_available_column_name": "foo_equipment_available_column_name"
+		"columns": {
+			"equipment_id": "foo_equipment_id_column_name",
+			"equipment_count_actual": "foo_equipment_available_column_name",
+			"equipment_count_target": "foo_equipment_target_column_name"
 		}
 	}
 	`
@@ -48,8 +49,9 @@ var _ = Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(cfg.WorkingDir).To(Equal("foo_working_dir"))
 			Expect(cfg.InventoryCSVFileName).To(Equal("foo_inventory_csv_file_name"))
-			Expect(cfg.InventoryCSVConfig.EquipmentIDColumnName).To(Equal("foo_equipment_id_column_name"))
-			Expect(cfg.InventoryCSVConfig.EquipmentAvailableColumnName).To(Equal("foo_equipment_available_column_name"))
+			Expect(cfg.Columns.EquipmentID).To(Equal("foo_equipment_id_column_name"))
+			Expect(cfg.Columns.EquipmentCountActual).To(Equal("foo_equipment_available_column_name"))
+			Expect(cfg.Columns.EquipmentCountTarget).To(Equal("foo_equipment_target_column_name"))
 		})
 
 		var _ = Describe("config errors", func() {
@@ -70,13 +72,11 @@ var _ = Describe("Config", func() {
 			})
 		})
 
-		It("returns an error if mandatory inventory_csv_config,equipment_id_column_name is missing", func() {
+		It("returns an error if mandatory columns.equipment_id is missing", func() {
 			jsonContent := `
 	{
-		"working_dir": "foo_working_dir",
 		"inventory_csv_file_name": "foo_inventory_csv_file_name",
-		"inventory_csv_config": {
-			"worksheet_name": "foo_worksheet_name"
+		"columns": {
 		}
 	}
 	`
@@ -86,17 +86,16 @@ var _ = Describe("Config", func() {
 
 			cfg, err := config.LoadConfig(tempFile.Name(), nil)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("failed to validate the config file, property inventory_csv_config.equipment_id_column_name is required"))
+			Expect(err.Error()).To(Equal("failed to validate the config file, property columns.equipment_id is required"))
 			Expect(cfg).To(BeNil())
 		})
 
-		It("returns an error if mandatory excel_config,equipment_available_column_name is missing", func() {
+		It("returns an error if mandatory columns.equipment_count_actual is missing", func() {
 			jsonContent := `
 		{
-			"working_dir": "foo_working_dir",
 			"inventory_csv_file_name": "foo_inventory_csv_file_name",
-			"inventory_csv_config": {
-				"equipment_id_column_name": "foo_equipment_id_column_name"
+			"columns": {
+				"equipment_id": "foo_equipment_id"
 			}
 		}
 		`
@@ -106,7 +105,7 @@ var _ = Describe("Config", func() {
 
 			cfg, err := config.LoadConfig(tempFile.Name(), nil)
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(Equal("failed to validate the config file, property inventory_csv_config.equipment_available_column_name is required"))
+			Expect(err.Error()).To(Equal("failed to validate the config file, property columns.equipment_count_actual is required"))
 			Expect(cfg).To(BeNil())
 		})
 	})
@@ -130,9 +129,9 @@ var _ = Describe("Config", func() {
 {
 	"working_dir": "%s",
 	"inventory_csv_file_name": "inventory_fgr_n.csv",
-	"inventory_csv_config": {
-		"equipment_id_column_name": "foo_equipment_id_column_name",
-		"equipment_available_column_name": "foo_equipment_available_column_name"
+	"columns": {
+		"equipment_id": "foo_equipment_id_column_name",
+		"equipment_count_actual": "foo_equipment_available_column_name"
 	}
 }
 `, strings.ReplaceAll(tempDir, "\\", "\\\\"))

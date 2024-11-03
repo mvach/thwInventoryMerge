@@ -57,7 +57,7 @@ func main() {
 		log.Fatalf("Failed to read CSV file '%s': %v", config.GetAbsoluteInventoryCSVFileName(), err)
 	}
 
-	inventoryData, err := app.NewInventoryData(content, logger)
+	inventoryData, err := app.NewInventoryData(content, *config, logger)
 	if err != nil {
 		log.Fatalf("Failed to init inventory data: %v", err)
 	}
@@ -76,7 +76,10 @@ func main() {
 	}
 	logger.Info("")
 
-	inventoryData.UpdateInventory(inventoryMap)
+	err = inventoryData.UpdateInventory(inventoryMap)
+	if err != nil {
+		log.Fatalf("Failed to update inventory: %v", err)
+	}
 
 	resultDir := filepath.Join(config.WorkingDir, "result")
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"thwInventoryMerge/config"
 	"thwInventoryMerge/utils"
 )
 
@@ -14,17 +15,18 @@ type csvContent []map[string]string
 type InventoryData interface {
 	GetContent() [][]string
 
-	UpdateInventory(recordedInventory RecordedInventoryMap)
+	UpdateInventory(recordedInventory RecordedInventoryMap) error
 }
 
 type inventoryData struct {
 	csvHeader        csvHeader
 	csvHeaderReverse csvHeaderReverse
 	content          csvContent
+	config           config.Config
 	logger           utils.Logger
 }
 
-func NewInventoryData(data [][]string, logger utils.Logger) (InventoryData, error) {
+func NewInventoryData(data [][]string, config config.Config, logger utils.Logger) (InventoryData, error) {
 
 	csvHeader := make(csvHeader)
 
@@ -57,6 +59,7 @@ func NewInventoryData(data [][]string, logger utils.Logger) (InventoryData, erro
 		csvHeader:        csvHeader,
 		csvHeaderReverse: csvHeaderReverse,
 		content:          content,
+		config:           config,
 		logger:           logger,
 	}, nil
 }
@@ -77,7 +80,7 @@ func (c *inventoryData) GetContent() [][]string {
 	return result
 }
 
-func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) {
+func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) error {
 
 	firstEquipment := true
 
@@ -85,10 +88,25 @@ func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) 
 		inventoryFound := false
 
 		for _, row := range c.content {
+			configColumns := c.config.Columns
+
 			// ignore case comparison
-			if strings.EqualFold(row["Inventar Nr"], inventory) {
+			if strings.EqualFold(row[configColumns.EquipmentID], inventory) {
 				inventoryFound = true
-				row["Verfügbar"] = strconv.Itoa(amount)
+
+				actualValue := strconv.Itoa(amount)
+
+				if configColumns.EquipmentCountTarget != "" {
+					targetValueInt, err := strconv.Atoi(row[configColumns.EquipmentCountTarget])
+					if err != nil {
+						return fmt.Errorf("error converting target value to int: %v", err)
+					}
+					if amount > targetValueInt {
+						actualValue = strconv.Itoa(targetValueInt)
+					}
+				}
+
+				row[configColumns.EquipmentCountActual] = actualValue
 			}
 		}
 
@@ -108,4 +126,6 @@ func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) 
 	if !firstEquipment {
 		c.logger.Info("")
 	}
+
+	return nil
 }

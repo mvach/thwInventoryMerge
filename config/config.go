@@ -10,14 +10,17 @@ import (
 )
 
 type Config struct {
-	WorkingDir    string `json:"working_dir"`
-	InventoryCSVFileName string `json:"inventory_csv_file_name"`
-	InventoryCSVConfig   struct {
-		EquipmentIDColumnName         string `json:"equipment_id_column_name"`
-		EquipmentAvailableColumnName  string `json:"equipment_available_column_name"`
-	} `json:"inventory_csv_config"`
-	
+	WorkingDir           string        `json:"working_dir"`
+	InventoryCSVFileName string        `json:"inventory_csv_file_name"`
+	Columns              ConfigColumns `json:"columns"`
+
 	logger utils.Logger
+}
+
+type ConfigColumns struct {
+	EquipmentID          string `json:"equipment_id"`
+	EquipmentCountActual string `json:"equipment_count_actual"`
+	EquipmentCountTarget string `json:"equipment_count_target"`
 }
 
 func (c *Config) GetCSVFilesWithRecordedEquipment() ([]string, error) {
@@ -35,12 +38,12 @@ func (c *Config) GetCSVFilesWithRecordedEquipment() ([]string, error) {
 			filepath.Ext(file.Name()) == ".csv" &&
 			filepath.Base(file.Name()) != c.InventoryCSVFileName {
 
-				if firstEquipment {
-					c.logger.Info("files with recorded equipment:")
-					c.logger.Info("")
-					firstEquipment = false
-				}
-			
+			if firstEquipment {
+				c.logger.Info("files with recorded equipment:")
+				c.logger.Info("")
+				firstEquipment = false
+			}
+
 			c.logger.InfoIndented(fmt.Sprintf("using '%s'", file.Name()))
 			csvFiles = append(csvFiles, filepath.Join(c.WorkingDir, file.Name()))
 		}
@@ -82,11 +85,11 @@ func (c Config) validate() error {
 	if c.InventoryCSVFileName == "" {
 		return errors.New("property inventory_csv_file_name is required")
 	}
-	if c.InventoryCSVConfig.EquipmentIDColumnName == "" {
-		return errors.New("property inventory_csv_config.equipment_id_column_name is required")
+	if c.Columns.EquipmentID == "" {
+		return errors.New("property columns.equipment_id is required")
 	}
-	if c.InventoryCSVConfig.EquipmentAvailableColumnName == "" {
-		return errors.New("property inventory_csv_config.equipment_available_column_name is required")
+	if c.Columns.EquipmentCountActual == "" {
+		return errors.New("property columns.equipment_count_actual is required")
 	}
 	return nil
 }

@@ -5,18 +5,17 @@ Dieses kleine Tool ermöglicht es, erfasstes Equipment mit den THW-Inventurdaten
 Das Tool lädt man am einfachsten aus der [Releases-Sektion](https://github.com/mvach/thwInventoryMerge/releases) herunter und legt es in ein beliebiges leeres Verzeichnis (das `working_dir`).
 
 ## Konfiguration
-Die CSV-Dateien mit den erfassten Barcodes der Scanner sowie die (aus THWin exportierte) Inventur-Excel-Datei legt man am besten ebenfalls in das `working_dir`.
+Die CSV-Dateien mit den erfassten Barcodes der Scanner sowie die (aus THWin exportierte) Inventur CSV Datei legt man am besten ebenfalls in das `working_dir`.
 
-Zudem erstellt man eine Konfigurationsdatei (`config.json`), die man am einfachsten auch in das `working_dir` legt.
+Zudem erstellt man eine Konfigurationsdatei (`config.json`), die man auch in das `working_dir` legt.
 
 ## Hier ist eine Beispielkonfiguration:
 
 ```
 // config.json
 {
-    "excel_file_name": "20240101_Bestand.xlsx",
-    "excel_config": {
-        "worksheet_name": "N",
+    "inventory_csv_file_name": "20240101_Bestand_FGr_N.csv",
+    "inventory_csv_config": {
         "equipment_id_column_name": "Inventar Nr",
         "equipment_available_column_name": "Verfügbar"
     }
@@ -31,7 +30,7 @@ C:/
     └── DeinUser/
         └── MeinArbeitsverzeichnis/
             ├── config.json
-            ├── 20240101_Bestand.xlsx
+            ├── 20240101_Bestand_FGr_N.csv
             ├── scanner1.csv
             ├── scanner2.csv
             ├── scanner3.csv
@@ -54,4 +53,8 @@ C:/
 
 ## Ausführung
 
-Liegen alle Dateien gemeinsam im `working_dir`, kann thwInventoryMerge.exe einfach per Doppelklick ausgeführt werden.
+Befinden sich alle Dateien gemeinsam im `working_dir`, kann die Datei `thwInventoryMerge.exe` einfach per Doppelklick ausgeführt werden.
+
+Nach der Ausführung wird im `working_dir` ein `result`-Verzeichnis erstellt, in dem sich eine Datei namens `result_<timestamp>.csv` befindet. Diese Datei enthält die zusammengeführten Inventurdaten.
+
+Jede weitere Ausführung erzeugt eine neue Datei `result_<timestamp>.csv`.

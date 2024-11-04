@@ -15,9 +15,10 @@ Zudem erstellt man eine Konfigurationsdatei (`config.json`), die man auch in das
 // config.json
 {
     "inventory_csv_file_name": "20240101_Bestand_FGr_N.csv",
-    "inventory_csv_config": {
-        "equipment_id_column_name": "Inventar Nr",
-        "equipment_available_column_name": "Verfügbar"
+    "columns": {
+        "equipment_id": "Inventar Nr",
+        "equipment_count_actual": "Menge"
+        "equipment_count_target": "Menge Ist"
     }
 }
 ```

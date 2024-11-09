@@ -18,6 +18,8 @@ type Config struct {
 }
 
 type ConfigColumns struct {
+	EquipmentLayer       string `json:"equipment_layer"`
+	EquipmentPartNumber  string `json:"equipment_part_number"`
 	EquipmentID          string `json:"equipment_id"`
 	EquipmentCountActual string `json:"equipment_count_actual"`
 	EquipmentCountTarget string `json:"equipment_count_target"`
@@ -84,6 +86,12 @@ func LoadConfig(filePath string, logger utils.Logger) (*Config, error) {
 func (c Config) validate() error {
 	if c.InventoryCSVFileName == "" {
 		return errors.New("property inventory_csv_file_name is required")
+	}
+	if c.Columns.EquipmentLayer == "" {
+		return errors.New("property columns.equipment_layer is required")
+	}
+	if c.Columns.EquipmentPartNumber == "" {
+		return errors.New("property columns.equipment_part_number is required")
 	}
 	if c.Columns.EquipmentID == "" {
 		return errors.New("property columns.equipment_id is required")

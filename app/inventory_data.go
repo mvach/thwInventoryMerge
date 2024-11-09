@@ -16,6 +16,8 @@ type InventoryData interface {
 	GetContent() [][]string
 
 	UpdateInventory(recordedInventory RecordedInventoryMap) error
+
+	GeneratePsydoEquipmentIDs() error
 }
 
 type inventoryData struct {
@@ -125,6 +127,74 @@ func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) 
 
 	if !firstEquipment {
 		c.logger.Info("")
+	}
+
+	return nil
+}
+
+func (c *inventoryData) GeneratePsydoEquipmentIDs() error {
+
+	content := c.content
+	columns := c.config.Columns
+	// Forward iteration
+	for i := range content {
+		if !utils.StartsWithNumber(content[i][columns.EquipmentID]) {
+			equipmentLayer, err := strconv.Atoi(content[i][columns.EquipmentLayer])
+			if err != nil && i > 0 {
+				c.logger.Warn(fmt.Sprintf("failed to convert column '%s' to number on line %d", columns.EquipmentLayer, i+1))
+				continue
+			}
+
+			searchedEquipmentLayer := equipmentLayer - 1
+			searchPath := fmt.Sprintf("%d", i+1)
+
+			// iterate backwards to find the last equipment number in upper layers
+			for j := i - 1; j >= 0; j-- {
+				if searchedEquipmentLayer <= 0 {
+					msg := fmt.Sprintf(
+						"skipping ID generation for line %d (processed lines %s). Could not find a '%s' value up to '%s' 1",
+						i+1,
+						searchPath,
+						columns.EquipmentID,
+						columns.EquipmentLayer,
+					)
+					c.logger.Warn(msg)
+
+					break
+				}
+
+				previousLineEquipmentLayer, err := strconv.Atoi(content[j][columns.EquipmentLayer])
+				if err != nil {
+					searchPath = searchPath + fmt.Sprintf(", %d", j+1)
+
+					msg := fmt.Sprintf(
+						"skipping ID generation for line %d (processed lines %s). Column '%s' of line %d cannot be converted to number",
+						i+1,
+						searchPath,
+						columns.EquipmentLayer,
+						j+1,
+					)
+					c.logger.Warn(msg)
+
+					break
+				}
+
+				if previousLineEquipmentLayer == searchedEquipmentLayer {
+					searchPath = searchPath + fmt.Sprintf(", %d", j+1)
+
+					if utils.StartsWithNumber(content[j][columns.EquipmentID]) && !strings.Contains(content[j][columns.EquipmentID], "__") {
+						content[i][columns.EquipmentID] = content[j][columns.EquipmentID] + "__" + content[i][columns.EquipmentPartNumber]
+
+						msg := fmt.Sprintf("created ID for line %d (processed lines %s)",i+1,searchPath)
+						c.logger.Info(msg)
+
+						break
+					} else {
+						searchedEquipmentLayer = searchedEquipmentLayer - 1
+					}
+				}
+			}
+		}
 	}
 
 	return nil

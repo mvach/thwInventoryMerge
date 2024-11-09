@@ -4,6 +4,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
 )
 
 type CSVContent [][]string
@@ -28,14 +31,16 @@ func (c *csvFile) Read(filePath string) (CSVContent, error) {
 	}
 	defer file.Close()
 
-	reader := csv.NewReader(file)
+	// Create a reader with the desired encoding (e.g., ISO-8859-1)
+	decoder := charmap.ISO8859_1.NewDecoder()
+	reader := csv.NewReader(transform.NewReader(file, decoder))
 	reader.Comma = ';'
 	reader.LazyQuotes = true
 	content, err := reader.ReadAll()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read CSV file '%s': %w", filePath, err)
 	}
-  
+
 	return content, nil
 }
 

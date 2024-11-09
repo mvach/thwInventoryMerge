@@ -35,6 +35,8 @@ var _ = Describe("Config", func() {
 		"working_dir": "foo_working_dir",
 		"inventory_csv_file_name": "foo_inventory_csv_file_name",
 		"columns": {
+			"equipment_layer": "foo_equipment_layer_column_name",
+			"equipment_part_number": "foo_equipment_part_number_column_name",
 			"equipment_id": "foo_equipment_id_column_name",
 			"equipment_count_actual": "foo_equipment_available_column_name",
 			"equipment_count_target": "foo_equipment_target_column_name"
@@ -72,11 +74,50 @@ var _ = Describe("Config", func() {
 			})
 		})
 
+		It("returns an error if mandatory columns.equipment_layer is missing", func() {
+			jsonContent := `
+	{
+		"inventory_csv_file_name": "foo_inventory_csv_file_name",
+		"columns": {
+		}
+	}
+	`
+			_, err := tempFile.Write([]byte(jsonContent))
+			Expect(err).ToNot(HaveOccurred())
+			tempFile.Close()
+
+			cfg, err := config.LoadConfig(tempFile.Name(), nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("failed to validate the config file, property columns.equipment_layer is required"))
+			Expect(cfg).To(BeNil())
+		})
+
+		It("returns an error if mandatory columns.equipment_part_number is missing", func() {
+			jsonContent := `
+	{
+		"inventory_csv_file_name": "foo_inventory_csv_file_name",
+		"columns": {
+			"equipment_layer": "foo_equipment_layer_column_name"
+		}
+	}
+	`
+			_, err := tempFile.Write([]byte(jsonContent))
+			Expect(err).ToNot(HaveOccurred())
+			tempFile.Close()
+
+			cfg, err := config.LoadConfig(tempFile.Name(), nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(Equal("failed to validate the config file, property columns.equipment_part_number is required"))
+			Expect(cfg).To(BeNil())
+		})
+
 		It("returns an error if mandatory columns.equipment_id is missing", func() {
 			jsonContent := `
 	{
 		"inventory_csv_file_name": "foo_inventory_csv_file_name",
 		"columns": {
+			"equipment_layer": "foo_equipment_layer_column_name",
+			"equipment_part_number": "foo_equipment_part_number_column_name"
 		}
 	}
 	`
@@ -95,6 +136,8 @@ var _ = Describe("Config", func() {
 		{
 			"inventory_csv_file_name": "foo_inventory_csv_file_name",
 			"columns": {
+				"equipment_layer": "foo_equipment_layer_column_name",
+				"equipment_part_number": "foo_equipment_part_number_column_name",
 				"equipment_id": "foo_equipment_id"
 			}
 		}
@@ -130,7 +173,9 @@ var _ = Describe("Config", func() {
 	"working_dir": "%s",
 	"inventory_csv_file_name": "inventory_fgr_n.csv",
 	"columns": {
-		"equipment_id": "foo_equipment_id_column_name",
+		"equipment_layer": "foo_equipment_layer_column_name",
+		"equipment_part_number": "foo_equipment_part_number_column_name",
+		"equipment_id": "foo_equipment_id",
 		"equipment_count_actual": "foo_equipment_available_column_name"
 	}
 }

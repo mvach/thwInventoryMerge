@@ -2,6 +2,7 @@ package utils
 
 import (
 	"log"
+	"os"
 )
 
 //counterfeiter:generate . Logger
@@ -15,6 +16,8 @@ type Logger interface {
 	WarnIndented(message string)
 
 	Error(message string)
+
+	Fatal(message string)
 }
 
 type logger struct {}
@@ -42,3 +45,10 @@ func (l logger) WarnIndented(message string) {
 func (l logger) Error(message string) {
 	log.Println("[ERROR] "+ message)
 }
+
+
+func (l logger) Fatal(message string) {
+	log.Println("[FATAL] "+ message)
+	os.Exit(1)
+}
+

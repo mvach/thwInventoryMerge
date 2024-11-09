@@ -88,6 +88,7 @@ func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) 
 
 	for inventory, amount := range recordedInventory {
 		inventoryFound := false
+		actualValue := strconv.Itoa(amount)
 
 		for _, row := range c.content {
 			configColumns := c.config.Columns
@@ -96,19 +97,19 @@ func (c *inventoryData) UpdateInventory(recordedInventory RecordedInventoryMap) 
 			if strings.EqualFold(row[configColumns.EquipmentID], inventory) {
 				inventoryFound = true
 
-				actualValue := strconv.Itoa(amount)
-
 				if configColumns.EquipmentCountTarget != "" {
 					targetValueInt, err := strconv.Atoi(row[configColumns.EquipmentCountTarget])
 					if err != nil {
 						return fmt.Errorf("error converting target value to int: %v", err)
 					}
-					if amount > targetValueInt {
+					if amount >= targetValueInt {
+						amount = amount - targetValueInt
 						actualValue = strconv.Itoa(targetValueInt)
 					}
 				}
 
 				row[configColumns.EquipmentCountActual] = actualValue
+				actualValue = strconv.Itoa(amount);
 			}
 		}
 
@@ -185,7 +186,7 @@ func (c *inventoryData) GeneratePsydoEquipmentIDs() error {
 					if utils.StartsWithNumber(content[j][columns.EquipmentID]) && !strings.Contains(content[j][columns.EquipmentID], "__") {
 						content[i][columns.EquipmentID] = content[j][columns.EquipmentID] + "__" + content[i][columns.EquipmentPartNumber]
 
-						msg := fmt.Sprintf("created ID for line %d (processed lines %s)",i+1,searchPath)
+						msg := fmt.Sprintf("created ID for line %d (processed lines %s)", i+1, searchPath)
 						c.logger.Info(msg)
 
 						break

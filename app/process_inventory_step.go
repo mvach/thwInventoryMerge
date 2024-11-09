@@ -61,10 +61,10 @@ func (p *inventoryProcessor) Process() error {
 
 	p.logger.Info("recorded equipment:")
 	p.logger.Info("")
-	p.logger.InfoIndented("equipment     : amount")
-	p.logger.InfoIndented("----------------------")
+	p.logger.InfoIndented("equipment                 : amount")
+	p.logger.InfoIndented("----------------------------------")
 	for key, value := range inventoryMap {
-		p.logger.InfoIndented(fmt.Sprintf("%-13s : %5d", key, value))
+		p.logger.InfoIndented(fmt.Sprintf("%-25s : %5d", key, value))
 	}
 	p.logger.Info("")
 

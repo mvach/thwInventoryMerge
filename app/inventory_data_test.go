@@ -146,6 +146,42 @@ var _ = Describe("CSVFile", func() {
 			Expect(content[1][4]).To(Equal("V"))
 		})
 
+		It("distributes the recorded values across the available ids as long as possible if EquipmentCountTarget is provided", func() {
+			csvData := [][]string{
+				{"Verfügbar", "Menge", "Ausstattung", "Inventar Nr"},
+				{"0", "1", "Spanngurt", "0591-S00001__1111"},
+				{"0", "1", "Spanngurt", "0591-S00001__1111"},
+				{"0", "1", "Spanngurt", "0591-S00001__1111"},
+				{"0", "5", "Spanngurt", "0591-S00001__1111"},
+				{"0", "1", "Spanngurt", "0591-S00001__1111"},
+				{"0", "1", "Spanngurt", "0591-S00001__1111"},
+				{"0", "1", "Spanngurt", "0591-S00001__1111"},
+			}
+
+			data, err := app.NewInventoryData(csvData, config.Config{
+				Columns: config.ConfigColumns{
+					EquipmentID:          "Inventar Nr",
+					EquipmentCountActual: "Verfügbar",
+					EquipmentCountTarget: "Menge",
+				},
+			}, &utilsfakes.FakeLogger{})
+			Expect(err).ToNot(HaveOccurred())
+
+			data.UpdateInventory(app.RecordedInventoryMap{
+				"0591-S00001__1111": 10,
+			})
+
+			content := data.GetContent()
+
+			Expect(content[1][0]).To(Equal("1"))
+			Expect(content[2][0]).To(Equal("1"))
+			Expect(content[3][0]).To(Equal("1"))
+			Expect(content[4][0]).To(Equal("5"))
+			Expect(content[5][0]).To(Equal("1"))
+			Expect(content[6][0]).To(Equal("1"))
+			Expect(content[7][0]).To(Equal("0")) // we collected only 10 items
+		})
+
 		It("logs not existing equipment", func() {
 			logger := &utilsfakes.FakeLogger{}
 

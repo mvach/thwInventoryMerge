@@ -57,6 +57,10 @@ func (s *initInventoryCSVStep) Init() error {
 func (s *initInventoryCSVStep) addActualEquipmentColumn(content CSVContent) {
 	for i := range content {
 		if i == 0 {
+			if content[i][len(content[i])-1] == s.config.Columns.EquipmentCountActual {
+				s.logger.Info(fmt.Sprintf("Skipping creation of column '%s'. It is existing already.", s.config.Columns.EquipmentCountActual))
+				break
+			}
 			content[i] = append(content[i], s.config.Columns.EquipmentCountActual)
 		} else {
 			content[i] = append(content[i], "")

@@ -31,11 +31,16 @@ func (p *inventoryProcessor) Process() error {
 		p.logger.Fatal(fmt.Sprintf("Failed to get CSV files: %v", err))
 	}
 
-	csvFile := NewCSVFile()
+	csvFile := NewCSVFile(p.logger)
 
 	var recordedInventoryData []CSVContent
 	for _, file := range csvFiles {
-		content, err := csvFile.Read(file)
+		encoding, err := NewEncodingProvider(p.logger).GetFileEncoding(file)
+		if err != nil {
+			p.logger.Fatal(fmt.Sprintf("Failed to get encoding of file '%s': %v", file, err))
+		}
+
+		content, err := csvFile.Read(file, encoding)
 		if err != nil {
 			p.logger.Fatal(fmt.Sprintf("Failed to read CSV file '%s': %v", file, err))
 		}
@@ -44,7 +49,14 @@ func (p *inventoryProcessor) Process() error {
 
 	recordedInventory := NewRecordedInventory(recordedInventoryData)
 
-	content, err := csvFile.Read(p.config.GetAbsoluteInventoryCSVFileName())
+	filePath := p.config.GetAbsoluteInventoryCSVFileName()
+
+	encoding, err := NewEncodingProvider(p.logger).GetFileEncoding(filePath)
+	if err != nil {
+		p.logger.Fatal(fmt.Sprintf("Failed to get encoding of file '%s': %v", filePath, err))
+	}
+
+	content, err := csvFile.Read(filePath, encoding)
 	if err != nil {
 		return fmt.Errorf("failed to read CSV file '%s': %v", p.config.GetAbsoluteInventoryCSVFileName(), err)
 	}

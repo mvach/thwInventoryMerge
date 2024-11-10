@@ -24,9 +24,16 @@ func NewInitInventoryCSVStep(config config.Config, logger utils.Logger) InitInve
 
 func (s *initInventoryCSVStep) Init() error {
 
-  csvFile := NewCSVFile()
+	filePath := s.config.GetAbsoluteInventoryCSVFileName()
 
-  content, err := csvFile.Read(s.config.GetAbsoluteInventoryCSVFileName())
+	encoding, err := NewEncodingProvider(s.logger).GetFileEncoding(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to get encoding of file '%s': %w", filePath, err)
+	}
+
+  csvFile := NewCSVFile(s.logger)
+
+  content, err := csvFile.Read(filePath, encoding)
 	if err != nil {
 		return fmt.Errorf("failed to read CSV file '%s': %v", s.config.GetAbsoluteInventoryCSVFileName(), err)
 	}

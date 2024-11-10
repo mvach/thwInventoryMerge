@@ -5,19 +5,25 @@ import (
 	"encoding/csv"
 	"os"
 	"path/filepath"
+	"runtime"
 	"thwInventoryMerge/app"
+	"thwInventoryMerge/utils/utilsfakes"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/encoding/unicode"
 )
 
 var _ = Describe("CSVFile", func() {
 
 	var (
 		filePath string
+		logger   *utilsfakes.FakeLogger
 	)
 
 	BeforeEach(func() {
+		logger = &utilsfakes.FakeLogger{}
 	})
 
 	AfterEach(func() {
@@ -45,7 +51,7 @@ var _ = Describe("CSVFile", func() {
 			})
 
 			It("should read the CSV file successfully", func() {
-				content, err := app.NewCSVFile().Read(filePath)
+				content, err := app.NewCSVFile(logger).Read(filePath, unicode.UTF8)
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(content).To(HaveLen(3)) // header + 2 rows
@@ -76,24 +82,17 @@ var _ = Describe("CSVFile", func() {
 			})
 
 			It("should read the CSV file successfully", func() {
-				_, err := app.NewCSVFile().Read(filePath)
+				_, err := app.NewCSVFile(logger).Read(filePath, unicode.UTF8)
 				Expect(err).NotTo(HaveOccurred())
-
-				// Expect(content).To(HaveLen(3)) // header + 2 rows
-				// Expect(content[0]).To(Equal([]string{"name", "age", "city"}))
-				// Expect(content[1]).To(Equal([]string{"Alice", "30", "New York"}))
-				// Expect(content[2]).To(Equal([]string{"Bob", "25", "San Francisco"}))
 			})
 		})
 
-
-
 		Context("when the file does not exist", func() {
 			It("should return an error", func() {
-				_, err := app.NewCSVFile().Read("nonexistent.csv")
+				_, err := app.NewCSVFile(logger).Read("nonexistent.csv", unicode.UTF8)
 
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to open CSV file"))
+				Expect(err.Error()).To(ContainSubstring("failed to open CSV file 'nonexistent.csv'"))
 			})
 		})
 
@@ -109,17 +108,39 @@ var _ = Describe("CSVFile", func() {
 			})
 
 			It("should return an error when reading", func() {
-				_, err := app.NewCSVFile().Read(filePath)
+				_, err := app.NewCSVFile(logger).Read(filePath, unicode.UTF8)
 
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to read CSV file"))
 			})
 		})
+
+		It("should open utf-8 files", func() {
+			_, currentFile, _, _ := runtime.Caller(0)
+			filePath := filepath.Join(currentFile, "..", "..", "testdata", "app", "utf-8.csv")
+
+			content, err := app.NewCSVFile(logger).Read(filePath, unicode.UTF8)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(content[0][1]).To(Equal("Verfügbar"))
+			Expect(content[0][5]).To(Equal("ÄÖÜäöüß"))
+		})
+
+		It("should open iso-8859-1 files", func() {
+			_, currentFile, _, _ := runtime.Caller(0)
+			filePath := filepath.Join(currentFile, "..", "..", "testdata", "app", "iso-8859-1.csv")
+
+			content, err := app.NewCSVFile(logger).Read(filePath, charmap.ISO8859_1)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(content[0][1]).To(Equal("Verfügbar"))
+			Expect(content[0][5]).To(Equal("ÄÖÜäöüß"))
+		})
 	})
 
 	var _ = Describe("Write", func() {
 		var (
-			content  [][]string
+			content [][]string
 		)
 
 		BeforeEach(func() {
@@ -130,44 +151,100 @@ var _ = Describe("CSVFile", func() {
 			}
 		})
 
-		Context("when the CSV file path is valid", func() {
-			BeforeEach(func() {
-				filePath = filepath.Join(os.TempDir(), "output.csv")
-			})
+		It("should write the content to a CSV file", func() {
+			content = [][]string{
+				{"name", "age", "city"},
+				{"Alice", "30", "New York"},
+				{"Bob", "25", "San Francisco"},
+			}
 
-			It("should write the content to the CSV file successfully", func() {
-				err := app.NewCSVFile().Write(filePath, content)
-				Expect(err).NotTo(HaveOccurred())
+			filePath = filepath.Join(os.TempDir(), "output.csv")
 
-				file, err := os.Open(filePath)
-				Expect(err).NotTo(HaveOccurred())
-				defer file.Close()
+			err := app.NewCSVFile(logger).Write(filePath, content)
+			Expect(err).NotTo(HaveOccurred())
 
-				scanner := bufio.NewScanner(file)
+			file, err := os.Open(filePath)
+			Expect(err).NotTo(HaveOccurred())
+			defer file.Close()
 
-				// \ufeff is the UTF-8 BOM for Excel on Windows compatibility
-				expectedLines := []string{
-					"\ufeffname;age;city",
-					"Alice;30;New York",
-					"Bob;25;San Francisco",
-				}
+			scanner := bufio.NewScanner(file)
 
-				i := 0
-				for scanner.Scan() {
-					Expect(scanner.Text()).To(Equal(expectedLines[i]))
-					i++
-				}
-				Expect(scanner.Err()).NotTo(HaveOccurred())
-				Expect(i).To(Equal(len(expectedLines)))
-			})
+			// \ufeff is the UTF-8 BOM for Excel on Windows compatibility
+			expectedLines := []string{
+				"\ufeffname;age;city",
+				"Alice;30;New York",
+				"Bob;25;San Francisco",
+			}
+
+			i := 0
+			for scanner.Scan() {
+				Expect(scanner.Text()).To(Equal(expectedLines[i]))
+				i++
+			}
+			Expect(scanner.Err()).NotTo(HaveOccurred())
+			Expect(i).To(Equal(len(expectedLines)))
+		})
+
+		It("should add a utf-8 bom to the CSV file", func() {
+			filePath = filepath.Join(os.TempDir(), "output.csv")
+
+			err := app.NewCSVFile(logger).Write(filePath, content)
+			Expect(err).NotTo(HaveOccurred())
+
+			file, err := os.Open(filePath)
+			Expect(err).NotTo(HaveOccurred())
+			defer file.Close()
+
+			// Read the first three bytes to check for the BOM
+			bom := make([]byte, 7)
+			_, err = file.Read(bom)
+			Expect(err).ToNot(HaveOccurred())
+
+			//first column header is "name"
+			// 0x6E is the ASCII code for 'n'
+			// 0x61 is the ASCII code for 'a'
+			// 0x6D is the ASCII code for 'm'
+			// 0x65 is the ASCII code for 'e'
+			Expect(bom).To(Equal([]byte{0xEF, 0xBB, 0xBF, 0x6E, 0x61, 0x6D, 0x65}))
+		})
+
+		It("should add a utf-8 bom to the CSV file only once", func() {
+			filePath = filepath.Join(os.TempDir(), "output.csv")
+
+			initialContent := "\ufeffname;age;city"
+			err := os.WriteFile(filePath, []byte(initialContent), 0644)
+			Expect(err).NotTo(HaveOccurred())
+
+			content = [][]string{
+				{"name", "age", "city"},
+			}
+
+			err = app.NewCSVFile(logger).Write(filePath, content)
+			Expect(err).NotTo(HaveOccurred())
+
+			file, err := os.Open(filePath)
+			Expect(err).NotTo(HaveOccurred())
+			defer file.Close()
+
+			// Read the first three bytes to check for the BOM
+			bom := make([]byte, 7)
+			_, err = file.Read(bom)
+			Expect(err).ToNot(HaveOccurred())
+
+			//first column header is "name"
+			// 0x6E is the ASCII code for 'n'
+			// 0x61 is the ASCII code for 'a'
+			// 0x6D is the ASCII code for 'm'
+			// 0x65 is the ASCII code for 'e'
+			Expect(bom).To(Equal([]byte{0xEF, 0xBB, 0xBF, 0x6E, 0x61, 0x6D, 0x65}))
 		})
 
 		Context("when the file path is invalid", func() {
 			It("should return an error", func() {
 				invalidPath := "/invalid/output.csv" // Likely to be invalid on most systems
-				err := app.NewCSVFile().Write(invalidPath, content)
+				err := app.NewCSVFile(logger).Write(invalidPath, content)
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("failed to create CSV file"))
+				Expect(err.Error()).To(ContainSubstring("failed to open CSV file"))
 			})
 		})
 	})
